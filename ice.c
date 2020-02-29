@@ -5147,8 +5147,10 @@ void janus_ice_dtls_handshake_done(janus_ice_handle *handle, janus_ice_component
 	janus_plugin *plugin = (janus_plugin *)handle->app;
 	if(plugin != NULL) {
 		JANUS_LOG(LOG_VERB, "[%"SCNu64"] Telling the plugin about it (%s)\n", handle->handle_id, plugin->get_name());
-		if(plugin && plugin->setup_media && janus_plugin_session_is_alive(handle->app_handle))
+		if(plugin && plugin->setup_media && janus_plugin_session_is_alive(handle->app_handle)) {
+			JANUS_LOG(LOG_VERB, "[CUSTOM] OK so i got here and calling setup media...");
 			plugin->setup_media(handle->app_handle);
+		}
 	}
 	/* Also prepare JSON event to notify user/application */
 	janus_session *session = (janus_session *)handle->session;
