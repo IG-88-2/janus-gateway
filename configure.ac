@@ -925,10 +925,11 @@ AS_IF([test "x$enable_post_processing" = "xyes"],
 AM_CONDITIONAL([WITH_SOURCE_DATE_EPOCH], [test "x$SOURCE_DATE_EPOCH" != "x"])
 AM_CONDITIONAL([ENABLE_POST_PROCESSING], [test "x$enable_post_processing" = "xyes"])
 
+
 AC_CONFIG_FILES([
   Makefile
-  html/Makefile
   docs/Makefile
+  html/Makefile
 ])
 
 JANUS_MANUAL_LIBS+=" -pthread"

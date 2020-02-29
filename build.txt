@@ -1,0 +1,64 @@
+TODO TRANSFORM THIS INTO SHELL SCRIPT
+
+//https://github.com/meetecho/janus-gateway/issues/891#issuecomment-302551141
+
+sh autogen.sh
+
+./configure --prefix=/opt/janus --disable-data-channels --disable-rabbitmq --disable-mqtt --enable-boringssl 
+
+//--prefix=/usr
+
+make --always-make && sudo make install
+
+make configs
+
+sudo ./janus --config=/opt/janus/etc/janus/janus.jcfg 
+
+// /opt/janus/bin/janus
+
+wget https://github.com/cisco/libsrtp/archive/v2.2.0.tar.gz
+tar xfv v2.2.0.tar.gz
+cd libsrtp-2.2.0
+./configure --prefix=/usr --libdir=/usr/lib64
+make shared_library && sudo make install
+
+--prefix=/opt/janus
+
+git clone https://boringssl.googlesource.com/boringssl
+cd boringssl
+sed -i s/" -Werror"//g CMakeLists.txt
+mkdir -p build
+cd build
+cmake -DCMAKE_CXX_FLAGS="-lrt" ..
+make
+cd ..
+sudo mkdir -p /opt/boringssl
+sudo cp -R include /opt/boringssl/
+sudo mkdir -p /opt/boringssl/lib
+sudo cp build/ssl/libssl.a /opt/boringssl/lib/
+sudo cp build/crypto/libcrypto.a /opt/boringssl/lib/
+
+
+
+git clone https://libwebsockets.org/repo/libwebsockets //git clone https://github.com/warmcat/libwebsockets.git
+cd libwebsockets
+# If you want the stable version of libwebsockets, uncomment the next line
+# git checkout v2.4-stable
+mkdir build
+cd build
+# See https://github.com/meetecho/janus-gateway/issues/732 re: LWS_MAX_SMP
+cmake -DLWS_MAX_SMP=1 -DCMAKE_INSTALL_PREFIX:PATH=/usr -DCMAKE_C_FLAGS="-fpic" ..
+make && sudo make install
+
+
+
+git clone https://gitlab.freedesktop.org/libnice/libnice
+cd libnice
+./autogen.sh
+./configure --prefix=/usr
+make && sudo make install
+
+//export LD_LIBRARY_PATH=/usr/lib64
+
+// pkg-config --cflags glib-2.0
+// sudo apt-get install gtk-doc-tools
