@@ -400,6 +400,16 @@ plugins_libadd = \
 	$(PLUGINS_LIBS) \
 	$(NULL)
 
+if ENABLE_PLUGIN_DUMMY
+plugin_LTLIBRARIES += plugins/libjanus_dummy.la 
+plugins_libjanus_dummy_la_SOURCES = plugins/janus_dummy.c
+plugins_libjanus_dummy_la_CFLAGS = $(plugins_cflags) $(OPUS_CFLAGS)
+plugins_libjanus_dummy_la_LDFLAGS = $(plugins_ldflags) $(OPUS_LDFLAGS) $(OPUS_LIBS)
+plugins_libjanus_dummy_la_LIBADD = $(plugins_libadd) $(OPUS_LIBADD)
+conf_DATA += conf/janus.plugin.dummy.jcfg.sample 
+EXTRA_DIST += conf/janus.plugin.dummy.jcfg.sample
+endif 
+
 if ENABLE_PLUGIN_AUDIOBRIDGE
 plugin_LTLIBRARIES += plugins/libjanus_audiobridge.la
 plugins_libjanus_audiobridge_la_SOURCES = plugins/janus_audiobridge.c

@@ -2,6 +2,40 @@ TODO TRANSFORM THIS INTO SHELL SCRIPT
 
 //https://github.com/meetecho/janus-gateway/issues/891#issuecomment-302551141
 
+
+
+# install dependencies
+sudo apt-get install -y libmicrohttpd-dev libcurl4-openssl-dev libjansson-dev libnice-dev libssl-dev libsofia-sip-ua-dev libglib2.0-dev libopus-dev libogg-dev pkg-config gengetopt libtool automake
+
+# install updated version of libsrtp
+wget https://github.com/cisco/libsrtp/archive/v2.0.0.tar.gz
+tar xfv v2.0.0.tar.gz
+cd libsrtp-2.0.0
+./configure --prefix=/usr --enable-openssl
+make shared_library && sudo make install
+cd ~
+
+# build janus
+git clone https://github.com/meetecho/janus-gateway.git
+cd janus-gateway
+sh autogen.sh
+./configure --prefix=/opt/janus --disable-websockets --disable-rabbitmq --disable-mqtt --disable-plugin-recordplay --disable-plugin-sip
+
+./configure --prefix=/opt/janus --disable-all-plugins --disable-data-channels --enable-boringssl --enable-plugin-dummy
+
+make
+sudo make install
+
+# make sample docs
+sudo make configs
+
+# edit configs to your liking
+
+
+sudo yum install -y libmicrohttpd-devl libcurl4-openssl-devl libjansson-dev libnice-dev libssl-dev libsofia-sip-ua-dev libglib2.0-dev libopus-dev libogg-dev pkg-config gengetopt libtool automake
+
+
+
 sh autogen.sh
 
 ./configure --prefix=/opt/janus --disable-data-channels --disable-rabbitmq --disable-mqtt --enable-boringssl 
@@ -55,10 +89,13 @@ make && sudo make install
 git clone https://gitlab.freedesktop.org/libnice/libnice
 cd libnice
 ./autogen.sh
-./configure --prefix=/usr
-make && sudo make install
+./configure --prefix=/usr --libdir=/usr/lib64
+make --always-make && sudo make install
 
 //export LD_LIBRARY_PATH=/usr/lib64
 
 // pkg-config --cflags glib-2.0
 // sudo apt-get install gtk-doc-tools
+
+sudo yum install gtk-doc
+sudo yum install gtk+-devel gtk2-devel

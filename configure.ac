@@ -23,6 +23,7 @@ CFLAGS="$CFLAGS \
 	-fstack-protector-all \
 	-fstrict-aliasing \
 	-ggdb3 \
+      -O0 \
 	-pthread \
 	-Wall \
 	-Warray-bounds \
@@ -148,6 +149,8 @@ AC_ARG_ENABLE([all-plugins],
               [AS_HELP_STRING([--disable-all-plugins],
                               [Disable building all plugins (except those manually enabled)])],
               [
+               AS_IF([test "x$enable_plugin_dummy" != "xyes"],
+                     [enable_plugin_dummy=no])
                AS_IF([test "x$enable_plugin_audiobridge" != "xyes"],
                      [enable_plugin_audiobridge=no])
                AS_IF([test "x$enable_plugin_duktape" != "xyes"],
@@ -666,6 +669,12 @@ PKG_CHECK_MODULES([PLUGINS],
                     glib-2.0 >= $glib_version
                     jansson >= $jansson_version
                   ])
+AC_ARG_ENABLE([plugin-dummy],
+              [AS_HELP_STRING([--disable-plugin-dummy],
+                              [Disable dummy plugin])],
+              [AS_IF([test "x$enable_plugin_dummy" != "xyes"],
+                     [enable_plugin_dummy=no])],
+              [enable_plugin_dummy=yes])
 
 AC_ARG_ENABLE([plugin-audiobridge],
               [AS_HELP_STRING([--disable-plugin-audiobridge],
@@ -810,6 +819,7 @@ PKG_CHECK_MODULES([LUA],
 AC_SUBST([LUA_CFLAGS])
 AC_SUBST([LUA_LIBS])
 
+AM_CONDITIONAL([ENABLE_PLUGIN_DUMMY], [test "x$enable_plugin_dummy" = "xyes"])
 AM_CONDITIONAL([ENABLE_PLUGIN_AUDIOBRIDGE], [test "x$enable_plugin_audiobridge" = "xyes"])
 AM_CONDITIONAL([ENABLE_PLUGIN_DUKTAPE], [test "x$enable_plugin_duktape" = "xyes"])
 AM_CONDITIONAL([ENABLE_PLUGIN_ECHOTEST], [test "x$enable_plugin_echotest" = "xyes"])
@@ -989,6 +999,9 @@ AM_COND_IF([ENABLE_NANOMSG],
 	[echo "    Nanomsg:               yes"],
 	[echo "    Nanomsg:               no"])
 echo "Plugins:"
+AM_COND_IF([ENABLE_PLUGIN_DUMMY],
+      [echo " Dummy:                    yes"],
+      [echo " Dummy:                    no"])
 AM_COND_IF([ENABLE_PLUGIN_ECHOTEST],
 	[echo "    Echo Test:             yes"],
 	[echo "    Echo Test:             no"])
