@@ -1722,6 +1722,8 @@ static void janus_videoroom_codecstr(janus_videoroom *videoroom, char *audio_cod
 }
 
 static void janus_videoroom_reqpli(janus_videoroom_publisher *publisher, const char *reason) {
+	if(publisher == NULL)
+		return;
 	/* Send a PLI */
 	JANUS_LOG(LOG_VERB, "%s sending PLI to %s (%s)\n", reason,
 		publisher->user_id_str, publisher->display ? publisher->display : "??");
@@ -1777,7 +1779,7 @@ static guint32 janus_videoroom_rtp_forwarder_add_helper(janus_videoroom_publishe
 				errno, strerror(errno));
 			return 0;
 		}
-		struct sockaddr_in6 address;
+		struct sockaddr_in6 address = { 0 };
 		socklen_t len = sizeof(address);
 		memset(&address, 0, sizeof(address));
 		address.sin6_family = AF_INET6;
@@ -2582,7 +2584,8 @@ json_t *janus_videoroom_query_session(janus_plugin_session *handle) {
 			janus_videoroom_publisher *participant = janus_videoroom_session_get_publisher(session);
 			if(participant && participant->room) {
 				janus_videoroom *room = participant->room;
-				json_object_set_new(info, "room", room ? json_integer(room->room_id) : NULL);
+				json_object_set_new(info, "room", room ?
+					(string_ids ? json_string(room->room_id_str) : json_integer(room->room_id)) : NULL);
 				json_object_set_new(info, "id", string_ids ? json_string(participant->user_id_str) : json_integer(participant->user_id));
 				json_object_set_new(info, "private_id", json_integer(participant->pvt_id));
 				if(participant->display)
@@ -2624,7 +2627,8 @@ json_t *janus_videoroom_query_session(janus_plugin_session *handle) {
 				janus_videoroom_publisher *feed = (janus_videoroom_publisher *)participant->feed;
 				if(feed && feed->room) {
 					janus_videoroom *room = feed->room;
-					json_object_set_new(info, "room", room ? json_integer(room->room_id) : NULL);
+					json_object_set_new(info, "room", room ?
+						(string_ids ? json_string(room->room_id_str) : json_integer(room->room_id)) : NULL);
 					json_object_set_new(info, "private_id", json_integer(participant->pvt_id));
 					json_object_set_new(info, "feed_id", string_ids ? json_string(feed->user_id_str) : json_integer(feed->user_id));
 					if(feed->display)
@@ -4800,7 +4804,7 @@ void janus_videoroom_incoming_rtp(janus_plugin_session *handle, janus_plugin_rtp
 				uint32_t ssrc = ntohl(rtp->ssrc);
 				janus_rtp_header_update(rtp, &participant->rec_ctx, TRUE, 0);
 				/* We use a fixed SSRC for the whole recording */
-				rtp->ssrc = htonl(participant->user_id & 0xffffffff);
+				rtp->ssrc = participant->ssrc[0];
 				janus_recorder_save_frame(participant->vrc, buf, len);
 				/* Restore the header, as it will be needed by subscribers */
 				rtp->ssrc = htonl(ssrc);
@@ -6287,7 +6291,7 @@ static void *janus_videoroom_handler(void *data) {
 				/* The user may be interested in an ICE restart */
 				gboolean do_restart = restart ? json_is_true(restart) : FALSE;
 				gboolean do_update = update ? json_is_true(update) : FALSE;
-				if(sdp_update || do_restart || do_update) {
+				if(publisher && (sdp_update || do_restart || do_update)) {
 					/* Negotiate by sending the selected publisher SDP back, and/or force an ICE restart */
 					if(publisher->sdp != NULL) {
 						char temp_error[512];
