@@ -278,6 +278,7 @@ void janus_jsonlog_incoming_logline(int64_t timestamp, const char *line) {
 }
 
 json_t *janus_jsonlog_handle_request(json_t *request) {
+
 	if(g_atomic_int_get(&stopping) || !g_atomic_int_get(&initialized)) {
 		return NULL;
 	}

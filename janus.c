@@ -1040,7 +1040,7 @@ int janus_process_incoming_request(janus_request *request) {
 		/* Send the success reply */
 		ret = janus_process_success(request, reply);
 	} else if(!strcasecmp(message_text, "attach")) {
-		if(handle != NULL) {
+		if (handle != NULL) {
 			/* Attach is a session-level command */
 			ret = janus_process_error(request, session_id, transaction_text, JANUS_ERROR_INVALID_REQUEST_PATH, "Unhandled request '%s' at this path", message_text);
 			goto jsondone;
@@ -1048,19 +1048,19 @@ int janus_process_incoming_request(janus_request *request) {
 		JANUS_VALIDATE_JSON_OBJECT(root, attach_parameters,
 			error_code, error_cause, FALSE,
 			JANUS_ERROR_MISSING_MANDATORY_ELEMENT, JANUS_ERROR_INVALID_ELEMENT_TYPE);
-		if(error_code != 0) {
+		if (error_code != 0) {
 			ret = janus_process_error_string(request, session_id, transaction_text, error_code, error_cause);
 			goto jsondone;
 		}
 		json_t *plugin = json_object_get(root, "plugin");
 		const gchar *plugin_text = json_string_value(plugin);
 		janus_plugin *plugin_t = janus_plugin_find(plugin_text);
-		if(plugin_t == NULL) {
+		if (plugin_t == NULL) {
 			ret = janus_process_error(request, session_id, transaction_text, JANUS_ERROR_PLUGIN_NOT_FOUND, "No such plugin '%s'", plugin_text);
 			goto jsondone;
 		}
 		/* If the auth token mechanism is enabled, we should check if this token can access this plugin */
-		if(janus_auth_is_enabled()) {
+		if (janus_auth_is_enabled()) {
 			json_t *token = json_object_get(root, "token");
 			if(token != NULL) {
 				const char *token_value = json_string_value(token);
