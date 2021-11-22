@@ -2,7 +2,8 @@ cmdline.c
 cmdline.h
 version.c
 docs/html/
-
+dogs
+FFmpeg
 /janus
 /janus-cfgconv
 /janus-pp-rec

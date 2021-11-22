@@ -4980,6 +4980,9 @@ static json_t *janus_videoroom_process_synchronous_request(janus_videoroom_sessi
 							janus_videoroom_recorder_close(participant);
 						} else if(participant->recording_active && participant->sdp) {
 							/* We've started recording, send a PLI/FIR and go on */
+
+							printf(" (1) going to create recorder for participant %s \n", participant->user_id_str);
+
 							janus_videoroom_recorder_create(
 								participant, strstr(participant->sdp, "m=audio") != NULL,
 								strstr(participant->sdp, "m=video") != NULL,
@@ -5441,6 +5444,7 @@ void janus_videoroom_incoming_rtp(janus_plugin_session *handle, janus_plugin_rtp
 		rtp->type = video ? participant->video_pt : participant->audio_pt;
 		/* Save the frame if we're recording */
 		if(!video || (participant->ssrc[0] == 0 && participant->rid[0] == NULL)) {
+			printf(" (1) going to save frame %d", len);
 			janus_recorder_save_frame(video ? participant->vrc : participant->arc, buf, len);
 		} else {
 			/* We're simulcasting, save the best video quality */
@@ -5453,6 +5457,9 @@ void janus_videoroom_incoming_rtp(janus_plugin_session *handle, janus_plugin_rtp
 				janus_rtp_header_update(rtp, &participant->rec_ctx, TRUE, 0);
 				/* We use a fixed SSRC for the whole recording */
 				rtp->ssrc = participant->ssrc[0];
+
+				printf(" (2) going to save frame %d", len);
+
 				janus_recorder_save_frame(participant->vrc, buf, len);
 				/* Restore the header, as it will be needed by subscribers */
 				rtp->ssrc = htonl(ssrc);
@@ -5750,6 +5757,9 @@ static void janus_videoroom_recorder_create(janus_videoroom_publisher *participa
 		participant->arc = rc;
 	}
 	if(video && participant->vrc == NULL) {
+
+		
+
 		janus_rtp_switching_context_reset(&participant->rec_ctx);
 		janus_rtp_simulcasting_context_reset(&participant->rec_simctx);
 		participant->rec_simctx.substream_target = 2;
@@ -5773,6 +5783,13 @@ static void janus_videoroom_recorder_create(janus_videoroom_publisher *participa
 				JANUS_LOG(LOG_ERR, "Couldn't open an video recording file for this publisher!\n");
 			}
 		}
+
+
+
+		printf("going to record video %s %s %s \n", participant->recording_base, participant->room->rec_dir, filename);
+
+
+
 		/* If media is encrypted, mark it in the recording */
 		if(participant->e2ee)
 			janus_recorder_encrypted(rc);
@@ -6906,6 +6923,8 @@ static void *janus_videoroom_handler(void *data) {
 						janus_videoroom_recorder_close(participant);
 					} else if(participant->recording_active && participant->sdp) {
 						/* We've started recording, send a PLI/FIR and go on */
+						printf(" (2) going to create recorder for participant %s \n", participant->user_id_str);
+
 						janus_videoroom_recorder_create(
 							participant, strstr(participant->sdp, "m=audio") != NULL,
 							strstr(participant->sdp, "m=video") != NULL,
@@ -7833,6 +7852,9 @@ static void *janus_videoroom_handler(void *data) {
 				janus_mutex_lock(&participant->rec_mutex);
 				if(videoroom->record || participant->recording_active) {
 					participant->recording_active = TRUE;
+
+					printf(" (3) going to create recorder for participant %s \n", participant->user_id_str);
+
 					janus_videoroom_recorder_create(participant, participant->audio, participant->video, participant->data);
 				}
 				janus_mutex_unlock(&participant->rec_mutex);
