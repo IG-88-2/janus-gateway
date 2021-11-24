@@ -4111,6 +4111,7 @@ gboolean janus_plugin_auth_signature_contains(janus_plugin *plugin, const char *
 /* Main */
 gint main(int argc, char *argv[])
 {
+	printf("HELLO THERE!");
 	/* Core dumps may be disallowed by parent of this process; change that */
 	struct rlimit core_limits;
 	core_limits.rlim_cur = core_limits.rlim_max = RLIM_INFINITY;

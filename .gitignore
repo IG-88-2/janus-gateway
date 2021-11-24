@@ -2,7 +2,7 @@ cmdline.c
 cmdline.h
 version.c
 docs/html/
-dogs
+custom_configure
 FFmpeg
 /janus
 /janus-cfgconv
