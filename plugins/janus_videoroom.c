@@ -5745,12 +5745,16 @@ static rec_location* get_recordings_folder(janus_videoroom_publisher *participan
 	location->video = g_malloc(255);
 
 	location->data = g_malloc(255);
-	
+
+	const char *vcodec = janus_videocodec_name(participant->vcodec);
+
+	const char *acodec = janus_audiocodec_name(participant->acodec);
+
 	g_snprintf(location->dir, 255, "/home/recordings/room-%s", participant->room_id_str);
 
-	g_snprintf(location->audio, 255, "%s-audio-%i", participant->user_id_str, now);
+	g_snprintf(location->audio, 255, "%s-audio-%i-%s", participant->user_id_str, now, acodec);
 
-	g_snprintf(location->video, 255, "%s-video-%i", participant->user_id_str, now);
+	g_snprintf(location->video, 255, "%s-video-%i-%s", participant->user_id_str, now, vcodec);
 
 	g_snprintf(location->data, 255, "%s-data-%i", participant->user_id_str, now);
 	
