@@ -1460,6 +1460,13 @@ static void janus_videoroom_relay_rtp_packet(gpointer data, gpointer user_data);
 static void janus_videoroom_relay_data_packet(gpointer data, gpointer user_data);
 static void janus_videoroom_hangup_media_internal(gpointer session_data);
 
+typedef struct rec_location {
+	gchar *dir;
+	gchar *audio;
+	gchar *video;
+	gchar *data;
+} rec_location;
+
 typedef enum janus_videoroom_p_type {
 	janus_videoroom_p_type_none = 0,
 	janus_videoroom_p_type_subscriber,			/* Generic subscriber */
@@ -4980,9 +4987,6 @@ static json_t *janus_videoroom_process_synchronous_request(janus_videoroom_sessi
 							janus_videoroom_recorder_close(participant);
 						} else if(participant->recording_active && participant->sdp) {
 							/* We've started recording, send a PLI/FIR and go on */
-
-							printf(" (1) going to create recorder for participant %s \n", participant->user_id_str);
-
 							janus_videoroom_recorder_create(
 								participant, strstr(participant->sdp, "m=audio") != NULL,
 								strstr(participant->sdp, "m=video") != NULL,
@@ -5444,7 +5448,6 @@ void janus_videoroom_incoming_rtp(janus_plugin_session *handle, janus_plugin_rtp
 		rtp->type = video ? participant->video_pt : participant->audio_pt;
 		/* Save the frame if we're recording */
 		if(!video || (participant->ssrc[0] == 0 && participant->rid[0] == NULL)) {
-			printf(" (1) going to save frame %d", len);
 			janus_recorder_save_frame(video ? participant->vrc : participant->arc, buf, len);
 		} else {
 			/* We're simulcasting, save the best video quality */
@@ -5457,8 +5460,6 @@ void janus_videoroom_incoming_rtp(janus_plugin_session *handle, janus_plugin_rtp
 				janus_rtp_header_update(rtp, &participant->rec_ctx, TRUE, 0);
 				/* We use a fixed SSRC for the whole recording */
 				rtp->ssrc = participant->ssrc[0];
-
-				printf(" (2) going to save frame %d", len);
 
 				janus_recorder_save_frame(participant->vrc, buf, len);
 				/* Restore the header, as it will be needed by subscribers */
@@ -5727,97 +5728,117 @@ void janus_videoroom_slow_link(janus_plugin_session *handle, int uplink, int vid
 	janus_refcount_decrease(&session->ref);
 }
 
-static void janus_videoroom_recorder_create(janus_videoroom_publisher *participant, gboolean audio, gboolean video, gboolean data) {
-	char filename[255];
-	janus_recorder *rc = NULL;
-	gint64 now = janus_get_real_time();
-	if(audio && participant->arc == NULL) {
-		memset(filename, 0, 255);
-		if(participant->recording_base) {
-			/* Use the filename and path we have been provided */
-			g_snprintf(filename, 255, "%s-audio", participant->recording_base);
-			rc = janus_recorder_create(participant->room->rec_dir,
-				janus_audiocodec_name(participant->acodec), filename);
-			if(rc == NULL) {
-				JANUS_LOG(LOG_ERR, "Couldn't open an audio recording file for this publisher!\n");
-			}
-		} else {
-			/* Build a filename */
-			g_snprintf(filename, 255, "videoroom-%s-user-%s-%"SCNi64"-audio",
-				participant->room_id_str, participant->user_id_str, now);
-			rc = janus_recorder_create(participant->room->rec_dir,
-				janus_audiocodec_name(participant->acodec), filename);
-			if(rc == NULL) {
-				JANUS_LOG(LOG_ERR, "Couldn't open an audio recording file for this publisher!\n");
-			}
-		}
-		/* If media is encrypted, mark it in the recording */
-		if(participant->e2ee)
-			janus_recorder_encrypted(rc);
-		participant->arc = rc;
-	}
-	if(video && participant->vrc == NULL) {
 
+
+static rec_location* get_recordings_folder(janus_videoroom_publisher *participant) {
+
+	gint64 now = janus_get_real_time();
+
+	rec_location *location = g_malloc0(sizeof(rec_location));
+
+	//TODO g_strdup_printf("%s - %s", "Failed to find about page with locale - ", "foo", locale_text);
+
+	location->dir = g_malloc(255);
+
+	location->audio = g_malloc(255);
+
+	location->video = g_malloc(255);
+
+	location->data = g_malloc(255);
+	
+	g_snprintf(location->dir, 255, "./recordings/room-%s", participant->room_id_str);
+
+	g_snprintf(location->audio, 255, "%s-audio-%i", participant->user_id_str, now);
+
+	g_snprintf(location->video, 255, "%s-video-%i", participant->user_id_str, now);
+
+	g_snprintf(location->data, 255, "%s-data-%i", participant->user_id_str, now);
+	
+	return location;
+
+}
+
+
+
+static void janus_videoroom_recorder_create(janus_videoroom_publisher *participant, gboolean audio, gboolean video, gboolean data) {
+	
+	gint64 now = janus_get_real_time();
+
+	rec_location *location = get_recordings_folder(participant);
+
+	janus_recorder *rc = NULL;
+	
+	if (audio && participant->arc == NULL) {
 		
+		rc = janus_recorder_create(
+			location->dir,
+			janus_audiocodec_name(participant->acodec),
+			location->audio
+		);
+
+		if (rc == NULL) {
+			JANUS_LOG(LOG_ERR, "Couldn't open an audio recording file for this publisher!\n");
+		}
+		
+		/* If media is encrypted, mark it in the recording */
+		if (participant->e2ee) {
+			janus_recorder_encrypted(rc);
+		}
+
+		participant->arc = rc;
+
+	}
+
+	if (video && participant->vrc == NULL) {
 
 		janus_rtp_switching_context_reset(&participant->rec_ctx);
 		janus_rtp_simulcasting_context_reset(&participant->rec_simctx);
 		participant->rec_simctx.substream_target = 2;
 		participant->rec_simctx.templayer_target = 2;
-		memset(filename, 0, 255);
-		if(participant->recording_base) {
-			/* Use the filename and path we have been provided */
-			g_snprintf(filename, 255, "%s-video", participant->recording_base);
-			rc = janus_recorder_create_full(participant->room->rec_dir,
-				janus_videocodec_name(participant->vcodec), participant->vfmtp, filename);
-			if(rc == NULL) {
-				JANUS_LOG(LOG_ERR, "Couldn't open an video recording file for this publisher!\n");
-			}
-		} else {
-			/* Build a filename */
-			g_snprintf(filename, 255, "videoroom-%s-user-%s-%"SCNi64"-video",
-				participant->room_id_str, participant->user_id_str, now);
-			rc = janus_recorder_create_full(participant->room->rec_dir,
-				janus_videocodec_name(participant->vcodec), participant->vfmtp, filename);
-			if(rc == NULL) {
-				JANUS_LOG(LOG_ERR, "Couldn't open an video recording file for this publisher!\n");
-			}
+		
+		rc = janus_recorder_create_full(
+			location->dir,
+			janus_videocodec_name(participant->vcodec), 
+			participant->vfmtp, 
+			location->video
+		);
+
+		if (rc == NULL) {
+			JANUS_LOG(LOG_ERR, "Couldn't open an video recording file for this publisher!\n");
 		}
-
-
-
-		printf("going to record video %s %s %s \n", participant->recording_base, participant->room->rec_dir, filename);
-
-
-
+		
 		/* If media is encrypted, mark it in the recording */
-		if(participant->e2ee)
+		if (participant->e2ee) {
 			janus_recorder_encrypted(rc);
-		participant->vrc = rc;
-	}
-	if(data && participant->drc == NULL) {
-		memset(filename, 0, 255);
-		if(participant->recording_base) {
-			/* Use the filename and path we have been provided */
-			g_snprintf(filename, 255, "%s-data", participant->recording_base);
-			rc = janus_recorder_create(participant->room->rec_dir,
-				"text", filename);
-			if(rc == NULL) {
-				JANUS_LOG(LOG_ERR, "Couldn't open an data recording file for this publisher!\n");
-			}
-		} else {
-			/* Build a filename */
-			g_snprintf(filename, 255, "videoroom-%s-user-%s-%"SCNi64"-data",
-				participant->room_id_str, participant->user_id_str, now);
-			rc = janus_recorder_create(participant->room->rec_dir,
-				"text", filename);
-			if(rc == NULL) {
-				JANUS_LOG(LOG_ERR, "Couldn't open an data recording file for this publisher!\n");
-			}
 		}
+
+		participant->vrc = rc;
+
+	}
+
+	if (data && participant->drc == NULL) {
+
+		rc = janus_recorder_create(
+			location->dir,
+			"text", 
+			location->data
+		);
+
+		if(rc == NULL) {
+			JANUS_LOG(LOG_ERR, "Couldn't open an data recording file for this publisher!\n");
+		}
+			
 		/* Media encryption doesn't apply to data channels */
 		participant->drc = rc;
+
 	}
+
+	g_free(location->audio);
+	g_free(location->video);
+	g_free(location->data);
+	g_free(location->dir);
+	g_free(location);
+
 }
 
 static void janus_videoroom_recorder_close(janus_videoroom_publisher *participant) {
@@ -6923,8 +6944,6 @@ static void *janus_videoroom_handler(void *data) {
 						janus_videoroom_recorder_close(participant);
 					} else if(participant->recording_active && participant->sdp) {
 						/* We've started recording, send a PLI/FIR and go on */
-						printf(" (2) going to create recorder for participant %s \n", participant->user_id_str);
-
 						janus_videoroom_recorder_create(
 							participant, strstr(participant->sdp, "m=audio") != NULL,
 							strstr(participant->sdp, "m=video") != NULL,
@@ -7852,9 +7871,6 @@ static void *janus_videoroom_handler(void *data) {
 				janus_mutex_lock(&participant->rec_mutex);
 				if(videoroom->record || participant->recording_active) {
 					participant->recording_active = TRUE;
-
-					printf(" (3) going to create recorder for participant %s \n", participant->user_id_str);
-
 					janus_videoroom_recorder_create(participant, participant->audio, participant->video, participant->data);
 				}
 				janus_mutex_unlock(&participant->rec_mutex);

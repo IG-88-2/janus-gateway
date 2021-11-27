@@ -409,7 +409,7 @@ int janus_recorder_save_frame(janus_recorder *recorder, char *buffer, uint lengt
 		JANUS_LOG(LOG_WARN, "Couldn't write size of frame in .mjr file (%zu != %zu, %s), expect issues post-processing\n",
 			res, sizeof(uint16_t), g_strerror(errno));
 	}
-	if(recorder->type == JANUS_RECORDER_DATA) {
+	if(recorder->type == JANUS_RECORDER_DATA) {   
 		/* If it's data, then we need to prepend timing related info, as it's not there by itself */
 		gint64 now = htonll(janus_get_real_time());
 		res = fwrite(&now, sizeof(gint64), 1, recorder->file);
