@@ -5746,7 +5746,7 @@ static rec_location* get_recordings_folder(janus_videoroom_publisher *participan
 
 	location->data = g_malloc(255);
 	
-	g_snprintf(location->dir, 255, "./recordings/room-%s", participant->room_id_str);
+	g_snprintf(location->dir, 255, "/home/recordings/room-%s", participant->room_id_str);
 
 	g_snprintf(location->audio, 255, "%s-audio-%i", participant->user_id_str, now);
 
